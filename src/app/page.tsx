@@ -69,54 +69,41 @@ export default function Home() {
   };
 
   return (
-    <main className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 shadow-md p-4">
-        <h1 className="text-2xl font-bold text-center text-gray-800 dark:text-white">
-          Symptalk AI Chat
-        </h1>
-      </header>
-      <div className="flex-1 p-4 overflow-y-auto">
-        <div className="max-w-2xl mx-auto">
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={`flex mb-4 ${
-                m.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
-              <div
-                className={`rounded-lg px-4 py-2 ${
-                  m.role === "user"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white"
-                }`}
-              >
-                {m.text}
-              </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
+    <main className="flex flex-col h-screen bg-white">
+      {/* haedline */}
+      <div className="bg-blue-500 py-6 text-center">
+        <h1 className="text-white text-xl font-semibold">Please Select A Service</h1>
+      </div>
+
+      {/* middle */}
+      <div
+        className="flex-1 flex flex-col items-center justify-center bg-no-repeat bg-cover bg-center"
+        style={{
+          backgroundImage: "url('/doctor_illustration.png')", // replace with image path
+        }}
+      >
+        <div className="flex gap-6 mt-10">
+          {/* Call button */}
+          <button
+            onClick={() => alert("Call clicked")} // or router.push('/call')
+            className="flex flex-col items-center justify-center bg-blue-500 text-white px-6 py-3 rounded-full shadow-md hover:bg-blue-600"
+          >
+            📞
+            <span className="mt-1 font-medium">Call</span>
+          </button>
+
+          {/* Chat button */}
+          <button
+            onClick={() => router.push("/chat")} // replace Chat routine
+            className="flex flex-col items-center justify-center bg-blue-500 text-white px-6 py-3 rounded-full shadow-md hover:bg-blue-600"
+          >
+            💬
+            <span className="mt-1 font-medium">Chat</span>
+          </button>
         </div>
       </div>
-      <footer className="bg-white dark:bg-gray-800 shadow-md p-4">
-        <div className="max-w-2xl mx-auto">
-          <form onSubmit={handleSubmit} className="flex">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="flex-1 p-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="Type your message..."
-            />
-            <button
-              type="submit"
-              className="bg-blue-500 text-white px-4 py-2 rounded-r-lg hover:bg-blue-600"
-            >
-              Send
-            </button>
-          </form>
-        </div>
-      </footer>
     </main>
+  );
+}
   );
 }
