@@ -69,41 +69,24 @@ export default function Home() {
   };
 
   return (
-    <main className="flex flex-col h-screen bg-white">
-      {/* haedline */}
-      <div className="bg-blue-500 py-6 text-center">
-        <h1 className="text-white text-xl font-semibold">Please Select A Service</h1>
-      </div>
+  <main className="flex flex-col items-center justify-center h-screen bg-white">
+    
+    {/* headline */}
+    <h1 className="text-4xl font-semibold text-blue-700 mb-40">
+      Symptalk
+    </h1>
 
-      {/* middle */}
-      <div
-        className="flex-1 flex flex-col items-center justify-center bg-no-repeat bg-cover bg-center"
-        style={{
-          backgroundImage: "url('/doctor_illustration.png')", // replace with image path
-        }}
-      >
-        <div className="flex gap-6 mt-10">
-          {/* Call button */}
-          <button
-            onClick={() => alert("Call clicked")} // or router.push('/call')
-            className="flex flex-col items-center justify-center bg-blue-500 text-white px-6 py-3 rounded-full shadow-md hover:bg-blue-600"
-          >
-            📞
-            <span className="mt-1 font-medium">Call</span>
-          </button>
+    {/* decline button */}
+    <div className="flex flex-col items-center">
+      {/* button */}
+      <button className="bg-gray-300 border-4 border-red-500 rounded-full p-8 mb-2 shadow-md hover:scale-105 transition-transform">
+        <img src="/phone-off.png" alt="Decline" className="w-16 h-16" />
+      </button>
 
-          {/* Chat button */}
-          <button
-            onClick={() => router.push("/chat")} // replace Chat routine
-            className="flex flex-col items-center justify-center bg-blue-500 text-white px-6 py-3 rounded-full shadow-md hover:bg-blue-600"
-          >
-            💬
-            <span className="mt-1 font-medium">Chat</span>
-          </button>
-        </div>
-      </div>
-    </main>
-  );
+    </div>
+
+  </main>
+);
 }
   );
 }
