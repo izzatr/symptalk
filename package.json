@@ -1,8 +1,8 @@
 {
-  "name": "next-starter-template",
-  "description": "Build a full-stack web application with Next.js.",
+  "name": "symptalk",
+  "description": "Symptalk is a platform to make an appointment with a doctor.",
   "cloudflare": {
-    "label": "Next.js Framework Starter",
+    "label": "Symptalk",
     "products": [
       "Workers"
     ],
@@ -14,33 +14,42 @@
     "publish": true
   },
   "dependencies": {
+    "@fal-ai/client": "^1.5.0",
+    "lucide-react": "^0.517.0",
     "next": "14.2.26",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "uuid": "^11.1.0"
+    "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
+    "ws": "^8.18.2"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250607.0",
     "@opennextjs/cloudflare": "^1.2.1",
     "@types/node": "^22.15.19",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.18.1",
     "eslint": "8.56.0",
     "eslint-config-next": "14.2.5",
+    "nodemon": "^3.1.10",
     "postcss": "8.5.3",
     "tailwindcss": "3.4.17",
     "typescript": "5.8.3",
     "wrangler": "^4.19.1"
   },
   "scripts": {
-    "build": "NEXT_PRIVATE_STANDALONE=true next build",
+    "build": "next build",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
     "check": "npm run build && tsc && wrangler deploy --dry-run",
-    "deploy": "wrangler deploy",
+    "deploy": "opennextjs-cloudflare build && wrangler deploy",
     "dev": "next dev",
+    "dev:local": "nodemon server.js",
     "lint": "next lint",
     "postbuild": "opennextjs-cloudflare build -s",
-    "preview": "npm run build && wrangler dev",
-    "start": "next start"
+    "preview": "opennextjs-cloudflare build && wrangler dev",
+    "start": "next start",
+    "start:vps": "NODE_ENV=production node server.js"
   }
 }
