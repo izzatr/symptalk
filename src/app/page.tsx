@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Message } from "@/lib/types";
-import { Send, Mic, X, MicOff } from "lucide-react";
+import { Send, Mic, X, MicOff, Square } from "lucide-react";
 import { useVoiceRecording } from "@/hooks/useVoiceRecording";
 
 // Chat UI Component
@@ -78,13 +78,17 @@ const ChatUI = ({
 // Voice UI Component
 const VoiceUI = ({
   isRecording,
+  isProcessing,
   isMuted,
   toggleMute,
+  toggleRecording,
   switchToChatMode,
 }: {
   isRecording: boolean;
+  isProcessing: boolean;
   isMuted: boolean;
   toggleMute: () => void;
+  toggleRecording: () => void;
   switchToChatMode: () => void;
 }) => (
   <div className="flex flex-col items-center justify-center flex-1 p-4">
@@ -95,14 +99,59 @@ const VoiceUI = ({
         }`}
       ></div>
       <div className="absolute inset-5 flex items-center justify-center">
-        <Mic
-          size={80}
-          className={`text-white ${
-            isRecording ? "transition-transform duration-1000 scale-110" : ""
-          }`}
-        />
+        {isRecording ? (
+          <Square
+            size={80}
+            className="text-white fill-white"
+          />
+        ) : (
+          <Mic
+            size={80}
+            className="text-white"
+          />
+        )}
       </div>
+      {isProcessing && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
     </div>
+    
+    {/* Status indicator */}
+    <div className="mt-4 text-center">
+      {isProcessing ? (
+        <div className="text-symp-blue font-medium">
+          Processing your message...
+        </div>
+      ) : isRecording ? (
+        <div className="text-red-600 font-medium">
+          Recording... Tap to stop
+        </div>
+      ) : (
+        <div className="text-gray-500 font-medium">
+          Tap to start recording
+        </div>
+      )}
+    </div>
+
+    {/* Main record/stop button */}
+    <button
+      onClick={toggleRecording}
+      disabled={isProcessing}
+      className={`mt-6 w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all ${
+        isRecording 
+          ? "bg-red-500 hover:bg-red-600 text-white" 
+          : "bg-white hover:bg-gray-100 text-symp-blue"
+      } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
+    >
+      {isRecording ? (
+        <Square size={32} className="fill-current" />
+      ) : (
+        <Mic size={32} />
+      )}
+    </button>
+    
     <div className="flex mt-8 space-x-4">
       <button
         onClick={toggleMute}
@@ -127,22 +176,28 @@ export default function Home() {
   const [sessionId, setSessionId] = useState("");
   const [isMuted, setIsMuted] = useState(false);
 
-  const { isRecording, startRecording, stopRecording } = useVoiceRecording(
+  const { isRecording, isProcessing, toggleRecording, cleanup } = useVoiceRecording(
     sessionId,
-    isMuted
+    isMuted,
+    (transcript) => {
+      console.log("Adding transcript to messages:", transcript);
+      // Add user transcript to messages
+      const userMessage: Message = {
+        id: uuidv4(),
+        role: "user",
+        text: transcript,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => {
+        const newMessages = [...prev, userMessage];
+        console.log("Updated messages:", newMessages);
+        return newMessages;
+      });
+    }
   );
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
-
-  useEffect(() => {
-    if (mode === "voice" && sessionId) {
-      startRecording();
-    } else {
-      stopRecording();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, sessionId]);
 
   useEffect(() => {
     setSessionId(uuidv4());
@@ -173,6 +228,7 @@ export default function Home() {
               (msg) => !messages.some((m) => m.id === msg.id)
             );
             if (newMessages.length > 0) {
+              console.log("Adding new messages from API:", newMessages);
               setMessages((prev) => [...prev, ...newMessages]);
             }
           }
@@ -193,6 +249,7 @@ export default function Home() {
       lastMessage.audioUrl &&
       lastMessage.audioUrl.startsWith("http")
     ) {
+      console.log("Playing audio response:", lastMessage.audioUrl);
       const audio = new Audio(lastMessage.audioUrl);
       audio.play().catch(e => console.error("Error playing audio:", e));
     }
@@ -226,6 +283,13 @@ export default function Home() {
 
   useEffect(() => { console.log("mode", mode) }, [mode])
 
+  // Clean up recording when switching modes
+  useEffect(() => {
+    if (mode === "chat") {
+      cleanup();
+    }
+  }, [mode, cleanup]);
+
   return (
     <main className="flex flex-col h-screen bg-gray-50">
       <header className="bg-symp-blue shadow-md p-4">
@@ -243,8 +307,10 @@ export default function Home() {
       ) : (
         <VoiceUI
           isRecording={isRecording}
+          isProcessing={isProcessing}
           isMuted={isMuted}
           toggleMute={() => setIsMuted(!isMuted)}
+          toggleRecording={toggleRecording}
           switchToChatMode={() => setMode("chat")}
         />
       )}
