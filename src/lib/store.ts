@@ -1,7 +1,3 @@
-export interface Message {
-  id: string;
-  role: "user" | "bot";
-  text: string;
-}
+import { Message } from "./types";
 
 export const messages: Record<string, Message[]> = {}; 
