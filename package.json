@@ -42,15 +42,11 @@
   },
   "scripts": {
     "build": "next build",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
-    "check": "npm run build && tsc && wrangler deploy --dry-run",
-    "deploy": "opennextjs-cloudflare build && wrangler deploy",
+    "build:clean": "next build",
+    "build:cf": "next build && opennextjs-cloudflare build -s",
     "dev": "next dev",
     "dev:local": "nodemon server.js",
     "lint": "next lint",
-    "postbuild": "opennextjs-cloudflare build -s",
-    "preview": "opennextjs-cloudflare build && wrangler dev",
-    "start": "NODE_ENV=production node server.js",
-    "start:vps": "NODE_ENV=production node server.js"
+    "start": "NODE_ENV=production node server.js"
   }
 }
