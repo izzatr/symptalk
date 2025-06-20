@@ -5,10 +5,14 @@ const { WebSocketServer } = require("ws");
 const { fal } = require("@fal-ai/client");
 
 const dev = process.env.NODE_ENV !== "production";
-const hostname = "localhost";
-const port = 3000;
-// when using middleware `hostname` and `port` must be provided below
-const app = next({ dev, hostname, port });
+const hostname = dev ? "localhost" : "0.0.0.0";
+const port = process.env.PORT || 3000;
+
+const nextConfig = dev 
+  ? { dev, hostname, port }
+  : { dev };
+
+const app = next(nextConfig);
 const handle = app.getRequestHandler();
 
 // In-memory store for messages
@@ -143,7 +147,7 @@ app.prepare().then(() => {
     }
   });
 
-  server.listen(port, (err) => {
+  server.listen(port, hostname, (err) => {
     if (err) throw err;
     console.log(`> Ready on http://${hostname}:${port}`);
   });

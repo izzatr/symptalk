@@ -22,8 +22,14 @@ export function useVoiceRecording(sessionId: string, isMuted: boolean, onTranscr
         ws.current.close();
       }
       
+      // Dynamic WebSocket URL based on environment
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = process.env.NODE_ENV === 'production' 
+        ? `${protocol}//${window.location.host}/ws?sessionId=${sessionId}`
+        : `ws://localhost:3000/ws?sessionId=${sessionId}`;
+      
       // Create WebSocket connection
-      ws.current = new WebSocket(`ws://localhost:3000/ws?sessionId=${sessionId}`);
+      ws.current = new WebSocket(wsUrl);
       
       ws.current.onopen = () => {
         console.log("WebSocket connection established");
