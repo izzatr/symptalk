@@ -152,13 +152,13 @@ const VoiceUI = ({
       )}
     </button>
     
-    <div className="flex mt-8 space-x-4">
-      <button
+    <div className="flex mt-10 space-x-4">
+      {/* <button
         onClick={toggleMute}
         className="bg-white text-red-500 p-4 rounded-full shadow-lg hover:bg-gray-100"
       >
         {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
-      </button>
+      </button> */}
       <button
         onClick={switchToChatMode}
         className="bg-white text-gray-600 p-4 rounded-full shadow-lg hover:bg-gray-100"
