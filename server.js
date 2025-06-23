@@ -3,6 +3,7 @@ const { parse } = require("url");
 const next = require("next");
 const { WebSocketServer } = require("ws");
 const { fal } = require("@fal-ai/client");
+const { FormData, Blob } = require('formdata-node');
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = dev ? "localhost" : "0.0.0.0";
@@ -100,13 +101,15 @@ app.prepare().then(() => {
       try {
         console.log(`Processing audio for session ${sessionId}, chunks: ${audioChunks.length}`);
         
-        // The client sends audio chunks as blobs. We combine them into a single blob.
-        // MediaRecorder in most browsers defaults to 'audio/webm;codecs=opus'.
-        // fal-ai/wizper supports webm, so no conversion is needed.
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const audioFile = new File([audioBlob], "audio.webm", { type: 'audio/webm' });
+        // Convert audio chunks to a single Buffer
+        const audioBuffer = Buffer.concat(audioChunks);
+        
+        // Create a proper Blob
+        const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
+        
+        // Upload the blob directly
+        const audioUrl = await fal.storage.upload(audioBlob);
 
-        const audioUrl = await fal.storage.upload(audioFile);
         const res = await fal.subscribe("fal-ai/wizper", {
           input: {
             audio_url: audioUrl,
