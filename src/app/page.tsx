@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Message } from "@/lib/types";
-import { Send, Mic, X, MicOff, Square } from "lucide-react";
+import { Send, Mic, X, MicOff, Square, HeartPlus } from "lucide-react";
 import { useVoiceRecording } from "@/hooks/useVoiceRecording";
+import Lottie from "lottie-react";
+import aiAnimation from "../../public/ai.json";
 
 // Chat UI Component
 const ChatUI = ({
@@ -93,45 +95,20 @@ const VoiceUI = ({
 }) => (
   <div className="flex flex-col items-center justify-center flex-1 p-4">
     <div className="relative w-64 h-64">
-      <div
-        className={`absolute inset-0 bg-gradient-to-br from-[#D9D9D9] to-[#7B97E3] rounded-full ${
-          isRecording ? "animate-pulse" : ""
-        }`}
-      ></div>
+      <Lottie animationData={aiAnimation} />
       <div className="absolute inset-5 flex items-center justify-center">
-        {isRecording ? (
-          <Square
-            size={80}
-            className="text-white fill-white"
-          />
-        ) : (
-          <Mic
-            size={80}
-            className="text-white"
-          />
-        )}
+        <HeartPlus size={40} className="text-white" />
       </div>
-      {isProcessing && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      )}
     </div>
-    
+
     {/* Status indicator */}
     <div className="mt-4 text-center">
       {isProcessing ? (
-        <div className="text-symp-blue font-medium">
-          Processing your message...
-        </div>
+        <div className="text-symp-blue font-medium">Processing...</div>
       ) : isRecording ? (
-        <div className="text-red-600 font-medium">
-          Recording... Tap to stop
-        </div>
+        <div className="text-red-600 font-medium">Tap to stop</div>
       ) : (
-        <div className="text-gray-500 font-medium">
-          Tap to start recording
-        </div>
+        <div className="text-gray-500 font-medium">Tap to talk</div>
       )}
     </div>
 
@@ -140,8 +117,8 @@ const VoiceUI = ({
       onClick={toggleRecording}
       disabled={isProcessing}
       className={`mt-6 w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all ${
-        isRecording 
-          ? "bg-red-500 hover:bg-red-600 text-white" 
+        isRecording
+          ? "bg-red-500 hover:bg-red-600 text-white"
           : "bg-white hover:bg-gray-100 text-symp-blue"
       } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
     >
@@ -151,7 +128,7 @@ const VoiceUI = ({
         <Mic size={32} />
       )}
     </button>
-    
+
     <div className="flex mt-10 space-x-4">
       {/* <button
         onClick={toggleMute}
@@ -176,10 +153,8 @@ export default function Home() {
   const [sessionId, setSessionId] = useState("");
   const [isMuted, setIsMuted] = useState(false);
 
-  const { isRecording, isProcessing, toggleRecording, cleanup } = useVoiceRecording(
-    sessionId,
-    isMuted,
-    (transcript) => {
+  const { isRecording, isProcessing, toggleRecording, cleanup } =
+    useVoiceRecording(sessionId, isMuted, (transcript) => {
       console.log("Adding transcript to messages:", transcript);
       // Add user transcript to messages
       const userMessage: Message = {
@@ -193,8 +168,7 @@ export default function Home() {
         console.log("Updated messages:", newMessages);
         return newMessages;
       });
-    }
-  );
+    });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -251,7 +225,7 @@ export default function Home() {
     ) {
       console.log("Playing audio response:", lastMessage.audioUrl);
       const audio = new Audio(lastMessage.audioUrl);
-      audio.play().catch(e => console.error("Error playing audio:", e));
+      audio.play().catch((e) => console.error("Error playing audio:", e));
     }
   }, [messages, mode]);
 
@@ -281,7 +255,9 @@ export default function Home() {
     }
   };
 
-  useEffect(() => { console.log("mode", mode) }, [mode])
+  useEffect(() => {
+    console.log("mode", mode);
+  }, [mode]);
 
   // Clean up recording when switching modes
   useEffect(() => {

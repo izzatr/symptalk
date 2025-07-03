@@ -16,6 +16,7 @@
   "dependencies": {
     "@fal-ai/client": "^1.5.0",
     "formdata-node": "^6.0.3",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.517.0",
     "next": "14.2.26",
     "react": "18.3.1",
