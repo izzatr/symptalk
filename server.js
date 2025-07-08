@@ -98,19 +98,31 @@ app.prepare().then(() => {
 
     // Function to process audio and send to n8n
     async function processAudio(audioChunks, sessionId, ws) {
+      const startTime = Date.now();
+      const processingId = `${sessionId}-${startTime}`;
+      
       try {
-        console.log(`Processing audio for session ${sessionId}, chunks: ${audioChunks.length}`);
+        console.log(`[${processingId}] Started processing audio for session ${sessionId}, chunks: ${audioChunks.length}`);
         
         // Convert audio chunks to a single Buffer
         const audioBuffer = Buffer.concat(audioChunks);
+        const fileSizeKB = (audioBuffer.length / 1024).toFixed(2);
+        console.log(`[${processingId}] Total audio size: ${fileSizeKB}KB`);
         
         // Create a proper Blob
         const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
         
-        // Upload the blob directly
+        // Upload the blob (but use fal.run instead of fal.subscribe)
+        const uploadStartTime = Date.now();
+        console.log(`[${processingId}] Starting optimized upload...`);
         const audioUrl = await fal.storage.upload(audioBlob);
+        const uploadDuration = Date.now() - uploadStartTime;
+        console.log(`[${processingId}] Upload completed in ${uploadDuration}ms`);
 
-        const res = await fal.subscribe("fal-ai/wizper", {
+        const transcriptionStartTime = Date.now();
+        console.log(`[${processingId}] Starting transcription with fal.run...`);
+        
+        const res = await fal.run("fal-ai/wizper", {
           input: {
             audio_url: audioUrl,
             task: "transcribe",
@@ -118,9 +130,12 @@ app.prepare().then(() => {
             version: "3",
           },
         });
+        
+        const transcriptionDuration = Date.now() - transcriptionStartTime;
+        console.log(`[${processingId}] Transcription completed in ${transcriptionDuration}ms`);
 
-        const transcript = res.data.text.trim();
-        console.log("Transcript:", transcript);
+        const transcript = res.data.text.trim();  // Correct path: res.data.text
+        console.log(`[${processingId}] Transcript: "${transcript}"`);
         
         // Send transcript back to client
         if (ws.readyState === WebSocket.OPEN) {
@@ -128,6 +143,7 @@ app.prepare().then(() => {
         }
 
         // Send to n8n workflow
+        const n8nStartTime = Date.now();
         const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || "https://n8n-symptalk.zeabur.app/webhook/chat-room";
         await fetch(n8nWebhookUrl, {
           method: "POST",
@@ -139,10 +155,18 @@ app.prepare().then(() => {
           }),
         });
         
-        console.log(`Sent transcript to n8n for session ${sessionId}`);
+        const totalProcessingTime = Date.now() - startTime;
+        console.log(`[${processingId}] Request sent to n8n in ${Date.now() - n8nStartTime}ms. Total processing time: ${totalProcessingTime}ms`);
         
       } catch (error) {
-        console.error("Error processing audio:", error);
+        const totalTime = Date.now() - startTime;
+        console.error(`[${processingId}] Error after ${totalTime}ms:`, error);
+        
+        // Log detailed error information
+        if (error.body && error.body.detail) {
+          console.error(`[${processingId}] Validation details:`, JSON.stringify(error.body.detail, null, 2));
+        }
+        
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'error', message: 'Failed to process audio' }));
         }
