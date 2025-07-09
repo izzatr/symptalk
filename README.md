@@ -1,60 +1,81 @@
-# Next.js Framework Starter
+# Symptalk 🤖💬
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/next-starter-template)
+Symptalk is an intelligent, AI-powered doctor appointment assistant designed to make accessing healthcare as simple as having a conversation. It provides a seamless interface for patients to book appointments using either text or voice, 24/7.
 
-<!-- dash-content-start -->
+## ✨ Vision
 
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app). It's deployed on Cloudflare Workers as a [static website](https://developers.cloudflare.com/workers/static-assets/).
+To create a world where accessing healthcare is frictionless. Symptalk serves as an empathetic and universally accessible first point of contact for every patient's healthcare journey, handling administrative tasks so that healthcare professionals can focus on providing care.
 
-<!-- dash-content-end -->
+## 🤖 Core Technologies
 
-Outside of this repo, you can start a new project with this template using [C3](https://developers.cloudflare.com/pages/get-started/c3/) (the `create-cloudflare` CLI):
+This project leverages a modern, real-time technology stack:
+
+-   **Framework**: [Next.js](https://nextjs.org/)
+-   **UI**: [React](https://reactjs.org/) & [Tailwind CSS](https://tailwindcss.com/)
+-   **Backend Server**: A custom [Node.js](https://nodejs.org/) server using `server.js`.
+-   **Real-time Communication**: [WebSockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) (`ws` library) for both voice streaming and chat messages.
+-   **Speech-to-Text**: [fal.ai](https://fal.ai/) for real-time voice transcription.
+-   **Conversational AI Logic**: Handled by an external [n8n.io](https://n8n.io/) workflow.
+-   **Deployment**: Containerized using [Docker](https://www.docker.com/).
+
+## 🚀 Getting Started
+
+To run this project locally, you will need Node.js and a package manager (npm, yarn, or pnpm) installed.
+
+### 1. Installation
+
+First, clone the repository and install the project dependencies:
 
 ```bash
-npm create cloudflare@latest -- --template=cloudflare/templates/next-starter-template
-```
-
-A live public deployment of this template is available at [https://next-starter-template.templates.workers.dev](https://next-starter-template.templates.workers.dev)
-
-## Getting Started
-
-First, run:
-
-```bash
+git clone <your-repository-url>
+cd symptalk
 npm install
-# or
-yarn install
-# or
-pnpm install
-# or
-bun install
 ```
 
-Then run the development server (using the package manager of your choice):
+### 2. Environment Variables
+
+The application requires an n8n webhook URL to function correctly. Create a `.env.local` file in the root of the project:
 
 ```bash
-npm run dev
+touch .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then, add the following variable to the file, replacing the placeholder with your actual n8n webhook URL:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+# .env.local
+FAL_KEY={insert your own key here}
+N8N_WEBHOOK_URL=https://your-n8n-webhook-url.com/webhook/chat-room
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+### 3. Running the Development Server
 
-## Deploying To Production
+For local development, you should run the custom Node.js server, which handles both the Next.js application and the WebSocket connections.
 
-| Command                           | Action                                       |
-| :-------------------------------- | :------------------------------------------- |
-| `npm run build`                   | Build your production site                   |
-| `npm run preview`                 | Preview your build locally, before deploying |
-| `npm run build && npm run deploy` | Deploy your production site to Cloudflare    |
+```bash
+npm run dev:local
+```
 
-## Learn More
+This will start the server using `nodemon` for automatic restarts on file changes. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-To learn more about Next.js, take a look at the following resources:
+## 🚢 Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This application is designed to be deployed as a stateful container using Docker.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+### 1. Build the Docker Image
+
+From the root of the project, run the following command to build the production-ready Docker image:
+
+```bash
+docker build -t symptalk .
+```
+
+### 2. Run the Docker Container
+
+Once the image is built, you can run it as a container. Make sure to pass your environment variables to the container. The simplest way is to point it to your `.env.local` file.
+
+```bash
+docker run -p 3000:3000 -d --env-file .env.local --name symptalk-app symptalk
+```
+
+Your application will now be running at `http://localhost:3000` (or the IP address of your server) in a detached (`-d`) production environment.
