@@ -85,6 +85,8 @@ const VoiceUI = ({
   toggleMute,
   toggleRecording,
   switchToChatMode,
+  selectedModel,
+  onModelChange,
 }: {
   isRecording: boolean;
   isProcessing: boolean;
@@ -92,6 +94,8 @@ const VoiceUI = ({
   toggleMute: () => void;
   toggleRecording: () => void;
   switchToChatMode: () => void;
+  selectedModel: string;
+  onModelChange: (model: string) => void;
 }) => (
   <div className="flex flex-col items-center justify-center flex-1 p-4">
     <div className="relative w-64 h-64">
@@ -101,7 +105,6 @@ const VoiceUI = ({
       </div>
     </div>
 
-    {/* Status indicator */}
     <div className="mt-4 text-center">
       {isProcessing ? (
         <div className="text-symp-blue font-medium">Processing...</div>
@@ -112,7 +115,22 @@ const VoiceUI = ({
       )}
     </div>
 
-    {/* Main record/stop button */}
+    <div className="my-4">
+      <label htmlFor="tts-model" className="mr-2 text-gray-600">
+        Voice Model:
+      </label>
+      <select
+        id="tts-model"
+        value={selectedModel}
+        onChange={(e) => onModelChange(e.target.value)}
+        className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-symp-blue"
+      >
+        <option value="A">Model A</option>
+        <option value="B">Model B</option>
+        <option value="C">Model C</option>
+      </select>
+    </div>
+
     <button
       onClick={toggleRecording}
       disabled={isProcessing}
@@ -152,29 +170,23 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [isMuted, setIsMuted] = useState(false);
+  const [ttsModel, setTtsModel] = useState("A");
+  const ws = useRef<WebSocket | null>(null);
 
-  const { isRecording, isProcessing, toggleRecording, cleanup } =
-    useVoiceRecording(sessionId, isMuted, (transcript) => {
-      console.log("Adding transcript to messages:", transcript);
-      // Add user transcript to messages
-      const userMessage: Message = {
-        id: uuidv4(),
-        role: "user",
-        text: transcript,
-        timestamp: Date.now(),
-      };
-      setMessages((prev) => {
-        const newMessages = [...prev, userMessage];
-        console.log("Updated messages:", newMessages);
-        return newMessages;
-      });
-    });
+  const {
+    isRecording,
+    isProcessing,
+    setIsProcessing,
+    toggleRecording,
+    cleanup,
+  } = useVoiceRecording(ws, isMuted, ttsModel);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    setSessionId(uuidv4());
+    const newSessionId = uuidv4();
+    setSessionId(newSessionId);
     setMessages([
       {
         id: uuidv4(),
@@ -183,37 +195,53 @@ export default function Home() {
         timestamp: Date.now(),
       },
     ]);
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl =
+      process.env.NODE_ENV === "production"
+        ? `${protocol}//${window.location.host}/ws?sessionId=${newSessionId}`
+        : `ws://localhost:3000/ws?sessionId=${newSessionId}`;
+
+    ws.current = new WebSocket(wsUrl);
+
+    ws.current.onopen = () => console.log("WebSocket connection established");
+    ws.current.onclose = () => console.log("WebSocket connection closed");
+    ws.current.onerror = (error) => console.error("WebSocket error:", error);
+
+    ws.current.onmessage = (event) => {
+      const eventData = JSON.parse(event.data);
+      if (eventData.type === "bot_message") {
+        setIsProcessing(false);
+        const botMessage: Message = {
+          id: uuidv4(),
+          role: "bot",
+          text: eventData.data.text,
+          audioUrl: eventData.data.audioUrl,
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, botMessage]);
+      } else if (eventData.type === "transcript") {
+        const userMessage: Message = {
+          id: uuidv4(),
+          role: "user",
+          text: eventData.text,
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, userMessage]);
+      } else if (eventData.type === "error") {
+        console.error("Server error:", eventData.message);
+        setIsProcessing(false);
+      }
+    };
+
+    return () => {
+      ws.current?.close();
+    };
   }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  useEffect(() => {
-    if (!sessionId) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/messages?sessionId=${sessionId}`);
-        if (response.ok) {
-          const data: { messages: Message[] } = await response.json();
-          if (data.messages && data.messages.length > 0) {
-            const newMessages = data.messages.filter(
-              (msg) => !messages.some((m) => m.id === msg.id)
-            );
-            if (newMessages.length > 0) {
-              console.log("Adding new messages from API:", newMessages);
-              setMessages((prev) => [...prev, ...newMessages]);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching messages:", error);
-      }
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [sessionId, messages]);
 
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
@@ -223,7 +251,6 @@ export default function Home() {
       lastMessage.audioUrl &&
       lastMessage.audioUrl.startsWith("http")
     ) {
-      console.log("Playing audio response:", lastMessage.audioUrl);
       const audio = new Audio(lastMessage.audioUrl);
       audio.play().catch((e) => console.error("Error playing audio:", e));
     }
@@ -231,7 +258,8 @@ export default function Home() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !sessionId) return;
+    if (!input.trim() || !sessionId || ws.current?.readyState !== WebSocket.OPEN)
+      return;
 
     const userMessage: Message = {
       id: uuidv4(),
@@ -240,19 +268,18 @@ export default function Home() {
       timestamp: Date.now(),
     };
     setMessages((prev) => [...prev, userMessage]);
-    setInput("");
 
-    try {
-      await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text: input, sessionId, mode: "chat" }),
-      });
-    } catch (error) {
-      console.error("Error sending message:", error);
-    }
+    // Send message via WebSocket instead of HTTP
+    ws.current.send(
+      JSON.stringify({
+        type: "chat_message",
+        text: input,
+        sessionId,
+        mode: "chat",
+      })
+    );
+
+    setInput("");
   };
 
   useEffect(() => {
@@ -288,6 +315,8 @@ export default function Home() {
           toggleMute={() => setIsMuted(!isMuted)}
           toggleRecording={toggleRecording}
           switchToChatMode={() => setMode("chat")}
+          selectedModel={ttsModel}
+          onModelChange={(model) => setTtsModel(model)}
         />
       )}
       <audio ref={audioRef} />
