@@ -7,6 +7,7 @@ import { Send, Mic, X, MicOff, Square, HeartPlus } from "lucide-react";
 import { useVoiceRecording } from "@/hooks/useVoiceRecording";
 import Lottie from "lottie-react";
 import aiAnimation from "../../public/ai.json";
+import loadingDotAnimation from "../../public/loading-dot.json";
 
 // Chat UI Component
 const ChatUI = ({
@@ -16,6 +17,7 @@ const ChatUI = ({
   handleInputChange,
   handleSubmit,
   switchToVoiceMode,
+  isBotTyping,
 }: {
   messages: Message[];
   messagesEndRef: React.RefObject<HTMLDivElement>;
@@ -23,6 +25,7 @@ const ChatUI = ({
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: (e: FormEvent) => void;
   switchToVoiceMode: () => void;
+  isBotTyping: boolean;
 }) => (
   <>
     <div className="flex-1 p-4 overflow-y-auto">
@@ -45,6 +48,18 @@ const ChatUI = ({
             </div>
           </div>
         ))}
+        {isBotTyping && (
+          <div className="flex mb-4 justify-start">
+            <div className="rounded-2xl bg-symp-blue text-white rounded-bl-none w-20 h-10 flex items-center justify-center">
+              <Lottie
+                animationData={loadingDotAnimation}
+                loop={true}
+                autoplay={true}
+                style={{ width: 100, height: 100 }}
+              />
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
     </div>
@@ -171,6 +186,7 @@ export default function Home() {
   const [sessionId, setSessionId] = useState("");
   const [isMuted, setIsMuted] = useState(false);
   const [ttsModel, setTtsModel] = useState("A");
+  const [isBotTyping, setIsBotTyping] = useState(false);
   const ws = useRef<WebSocket | null>(null);
 
   const {
@@ -211,6 +227,7 @@ export default function Home() {
     ws.current.onmessage = (event) => {
       const eventData = JSON.parse(event.data);
       if (eventData.type === "bot_message") {
+        setIsBotTyping(false);
         setIsProcessing(false);
         const botMessage: Message = {
           id: uuidv4(),
@@ -230,6 +247,7 @@ export default function Home() {
         setMessages((prev) => [...prev, userMessage]);
       } else if (eventData.type === "error") {
         console.error("Server error:", eventData.message);
+        setIsBotTyping(false);
         setIsProcessing(false);
       }
     };
@@ -256,6 +274,37 @@ export default function Home() {
     }
   }, [messages, mode]);
 
+  // Play waiting audio if processing takes too long in voice mode
+  useEffect(() => {
+    if (mode !== "voice" || !isProcessing) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      let audioSrc = "";
+      switch (ttsModel) {
+        case "A":
+          audioSrc = "/kokoro-waiting-3s.wav";
+          break;
+        case "B":
+          audioSrc = "/playai-waiting-3s.mp3";
+          break;
+        case "C":
+          audioSrc = "/chatterbox-waiting-3s.wav";
+          break;
+      }
+
+      if (audioSrc) {
+        const waitingAudio = new Audio(audioSrc);
+        waitingAudio
+          .play()
+          .catch((e) => console.error("Error playing waiting audio:", e));
+      }
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, [mode, isProcessing, ttsModel]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !sessionId || ws.current?.readyState !== WebSocket.OPEN)
@@ -268,6 +317,7 @@ export default function Home() {
       timestamp: Date.now(),
     };
     setMessages((prev) => [...prev, userMessage]);
+    setIsBotTyping(true);
 
     // Send message via WebSocket instead of HTTP
     ws.current.send(
@@ -306,6 +356,7 @@ export default function Home() {
           handleInputChange={(e) => setInput(e.target.value)}
           handleSubmit={handleSubmit}
           switchToVoiceMode={() => setMode("voice")}
+          isBotTyping={isBotTyping}
         />
       ) : (
         <VoiceUI
