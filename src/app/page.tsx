@@ -55,7 +55,7 @@ const ChatUI = ({
             type="text"
             value={input}
             onChange={handleInputChange}
-            className="flex-1 p-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-symp-blue"
+            className="flex-1 p-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-symp-blue text-black"
             placeholder="Type your message..."
           />
           <button
@@ -123,7 +123,7 @@ const VoiceUI = ({
         id="tts-model"
         value={selectedModel}
         onChange={(e) => onModelChange(e.target.value)}
-        className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-symp-blue"
+        className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-symp-blue text-gray-600"
       >
         <option value="A">Model A</option>
         <option value="B">Model B</option>
